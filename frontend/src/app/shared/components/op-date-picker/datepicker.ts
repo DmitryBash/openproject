@@ -33,29 +33,27 @@ import { I18nService } from 'core-app/core/i18n/i18n.service';
 import { rangeSeparator } from 'core-app/shared/components/op-date-picker/op-range-date-picker/op-range-date-picker.component';
 import { WeekdayResourceService } from 'core-app/core/state/days/weekday.service';
 import { Weekday } from 'core-app/core/state/days/weekday.model';
-import DateOption = flatpickr.Options.DateOption;
-import {
-  ChangeDetectorRef,
-  Injector,
-  NgZone,
-} from '@angular/core';
+import { Injector } from '@angular/core';
 import { InjectField } from 'core-app/shared/helpers/angular/inject-field.decorator';
 import { take } from 'rxjs/operators';
+import DateOption = flatpickr.Options.DateOption;
 
 export class DatePicker {
   private datepickerFormat = 'Y-m-d';
 
-  private datepickerCont:HTMLElement = document.querySelector(this.datepickerElemIdentifier)!;
+  private datepickerCont:HTMLElement = document.querySelector(this.datepickerElemIdentifier) as HTMLElement;
 
   public datepickerInstance:Instance;
 
-  private reshowTimeout:any;
+  private reshowTimeout:ReturnType<typeof setTimeout>;
 
   private weekdays:Weekday[] = [];
 
   @InjectField() configurationService:ConfigurationService;
 
   @InjectField() weekdaysService:WeekdayResourceService;
+
+  @InjectField() I18n:I18nService;
 
   constructor(
     readonly injector:Injector,
@@ -68,34 +66,9 @@ export class DatePicker {
   }
 
   private initialize(options:flatpickr.Options.Options) {
-    const I18n = new I18nService();
-    const firstDayOfWeek = this.configurationService.startOfWeek();
     this.loadWeekdays();
 
-    const mergedOptions = _.extend({}, options, {
-      weekNumbers: true,
-      getWeek(dateObj:Date) {
-        return moment(dateObj).format('W');
-      },
-      disable: [
-        (date:Date) => this.isDateDisabled(date),
-      ],
-      dateFormat: this.datepickerFormat,
-      defaultDate: this.date,
-      locale: {
-        weekdays: {
-          shorthand: I18n.t('date.abbr_day_names'),
-          longhand: I18n.t('date.day_names'),
-        },
-        months: {
-          shorthand: I18n.t<string[]>('date.abbr_month_names').slice(1),
-          longhand: I18n.t<string[]>('date.month_names').slice(1),
-        },
-        firstDayOfWeek,
-        weekAbbreviation: I18n.t('date.abbr_week'),
-        rangeSeparator: ` ${rangeSeparator} `,
-      },
-    });
+    const mergedOptions = _.extend({}, this.defaultOptions, options);
 
     let datePickerInstances:Instance|Instance[];
     if (this.datepickerTarget) {
@@ -109,16 +82,16 @@ export class DatePicker {
     document.addEventListener('scroll', this.hideDuringScroll, true);
   }
 
-  public clear() {
+  public clear():void {
     this.datepickerInstance.clear();
   }
 
-  public destroy() {
+  public destroy():void {
     this.hide();
     this.datepickerInstance.destroy();
   }
 
-  public hide() {
+  public hide():void {
     if (this.isOpen) {
       this.datepickerInstance.close();
     }
@@ -126,12 +99,12 @@ export class DatePicker {
     document.removeEventListener('scroll', this.hideDuringScroll, true);
   }
 
-  public show() {
+  public show():void {
     this.datepickerInstance.open();
     document.addEventListener('scroll', this.hideDuringScroll, true);
   }
 
-  public setDates(dates:DateOption|DateOption[]) {
+  public setDates(dates:DateOption|DateOption[]):void {
     this.datepickerInstance.setDate(dates);
   }
 
@@ -142,7 +115,7 @@ export class DatePicker {
   private hideDuringScroll = (event:Event) => {
     // Prevent Firefox quirk: flatPicker emits
     // multiple scrolls event when it is open
-    const target = event.target! as HTMLInputElement;
+    const target = event.target as HTMLInputElement;
 
     if (target?.classList?.contains('flatpickr-monthDropdown-months') || target?.classList?.contains('flatpickr-input')) {
       return;
@@ -172,7 +145,7 @@ export class DatePicker {
     }
   }
 
-  private isInViewport(element:HTMLElement) {
+  private isInViewport(element:HTMLElement):boolean {
     const rect = element.getBoundingClientRect();
 
     return (
@@ -183,7 +156,7 @@ export class DatePicker {
     );
   }
 
-  private isDateDisabled(date:Date):boolean {
+  public isDateDisabled(date:Date):boolean {
     const dayOfWeek = date.getUTCDay() + 1;
     return !!this.weekdays.find((wd) => wd.day === dayOfWeek && !wd.working);
   }
@@ -202,5 +175,34 @@ export class DatePicker {
           this.datepickerInstance.redraw();
         }
       });
+  }
+
+  private get defaultOptions() {
+    const firstDayOfWeek = this.configurationService.startOfWeek();
+
+    return {
+      weekNumbers: true,
+      getWeek(dateObj:Date) {
+        return moment(dateObj).format('W');
+      },
+      disable: [
+        (date:Date) => this.isDateDisabled(date),
+      ],
+      dateFormat: this.datepickerFormat,
+      defaultDate: this.date,
+      locale: {
+        weekdays: {
+          shorthand: this.I18n.t('date.abbr_day_names'),
+          longhand: this.I18n.t('date.day_names'),
+        },
+        months: {
+          shorthand: this.I18n.t<string[]>('date.abbr_month_names').slice(1),
+          longhand: this.I18n.t<string[]>('date.month_names').slice(1),
+        },
+        firstDayOfWeek,
+        weekAbbreviation: this.I18n.t('date.abbr_week'),
+        rangeSeparator: ` ${rangeSeparator} `,
+      },
+    };
   }
 }

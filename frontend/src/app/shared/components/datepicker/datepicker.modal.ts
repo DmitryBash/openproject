@@ -138,13 +138,8 @@ export class DatePickerModalComponent extends OpModalComponent implements AfterV
 
   changeSchedulingMode():void {
     this.scheduleManually = !this.scheduleManually;
+    this.initializeDatepicker();
     this.cdRef.detectChanges();
-
-    if (this.scheduleManually) {
-      this.initializeDatepicker();
-    } else if (this.isParent) {
-      this.removeDateSelection();
-    }
   }
 
   save($event:Event):void {
@@ -255,6 +250,9 @@ export class DatePickerModalComponent extends OpModalComponent implements AfterV
             instance.calendarContainer.classList.add('disabled');
           }
         },
+        disable: [
+          (date:Date) => !this.scheduleManually && this.datePickerInstance?.isDateDisabled(date),
+        ],
         onChange: (dates:Date[]) => {
           this.handleDatePickerChange(dates);
 
