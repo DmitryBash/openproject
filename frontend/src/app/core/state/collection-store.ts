@@ -12,6 +12,8 @@ import {
 } from 'core-app/core/apiv3/paths/apiv3-list-resource.interface';
 import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
+import { IHalResourceLinks } from 'core-app/core/state/hal-resource';
+import idFromLink from 'core-app/features/hal/helpers/id-from-link';
 
 export interface CollectionResponse {
   ids:ID[];
@@ -135,4 +137,23 @@ export function insertCollectionIntoState<T extends { id:ID }>(
       }
     ));
   });
+}
+
+/**
+ * Takes a collection of elements that do not have an ID, and extract the ID from self link.
+ * @param collection a IHALCollection with elements that have a self link
+ * @returns the same collection with elements extended with an ID dervied from the self link.
+ */
+export function extendCollectionElementsWithId<T extends { _links:IHalResourceLinks }>(
+  collection:IHALCollection<T>,
+):IHALCollection<T&{ id:ID }> {
+  const elements = collection._embedded.elements.map((element) => ({ ...element, id: idFromLink(element._links.self.href) }));
+
+  return {
+    ...collection,
+    _embedded: {
+      ...collection._embedded,
+      elements,
+    },
+  };
 }
