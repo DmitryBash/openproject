@@ -31,6 +31,7 @@ import {
   Directive,
   ElementRef,
   EventEmitter,
+  Injector,
   Input,
   OnDestroy,
   Output,
@@ -64,6 +65,7 @@ export abstract class AbstractDatePickerDirective extends UntilDestroyedMixin im
   protected datePickerInstance:DatePicker;
 
   public constructor(
+    readonly injector:Injector,
     protected timezoneService:TimezoneService,
     protected configurationService:ConfigurationService,
   ) {

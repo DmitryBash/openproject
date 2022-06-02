@@ -6,6 +6,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TimezoneService } from 'core-app/core/datetime/timezone.service';
 import { OpSingleDatePickerComponent } from 'core-app/shared/components/op-date-picker/op-single-date-picker/op-single-date-picker.component';
 import { ConfigurationService } from 'core-app/core/config/configuration.service';
+import { InjectField } from 'core-app/shared/helpers/angular/inject-field.decorator';
 
 @Component({
   selector: 'op-date-picker-control',
@@ -22,18 +23,12 @@ export class DatePickerControlComponent extends OpSingleDatePickerComponent impl
   // Avoid Angular warning (It looks like you're using the disabled attribute with a reactive form directive...)
   @Input('disable') disabled:boolean;
 
+  @InjectField() ngZone:NgZone;
+  @InjectField() changeDetectorRef:ChangeDetectorRef;
+
   onControlChange = (_:any) => { };
 
   onControlTouch = () => { };
-
-  constructor(
-    timezoneService:TimezoneService,
-    configurationService:ConfigurationService,
-    private ngZone:NgZone,
-    private changeDetectorRef:ChangeDetectorRef,
-  ) {
-    super(timezoneService, configurationService);
-  }
 
   writeValue(date:string):void {
     this.initialDate = this.formatter(date);

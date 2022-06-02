@@ -1,15 +1,17 @@
 import { Injectable } from '@angular/core';
 import {
   map,
+  switchMap,
   tap,
 } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import {
+  EMPTY,
+  Observable,
+} from 'rxjs';
 import { ApiV3Service } from 'core-app/core/apiv3/api-v3.service';
 import { IHALCollection } from 'core-app/core/apiv3/types/hal-collection.type';
 import { HttpClient } from '@angular/common/http';
-import { ApiV3ListParameters } from 'core-app/core/apiv3/paths/apiv3-list-resource.interface';
 import {
-  collectionKey,
   extendCollectionElementsWithId,
   insertCollectionIntoState,
 } from 'core-app/core/state/collection-store';
@@ -37,12 +39,22 @@ export class WeekdayResourceService {
   ) {
   }
 
-  fetchWeekdays(params:ApiV3ListParameters):Observable<IHALCollection<Weekday>> {
-    const collectionURL = collectionKey(params);
+  require():Observable<Weekday[]> {
+    return this
+      .query
+      .selectHasCache()
+      .pipe(
+        switchMap((hasCache) => (hasCache ? EMPTY : this.fetchWeekdays())),
+        switchMap(() => this.query.selectAll()),
+      );
+  }
+
+  private fetchWeekdays():Observable<IHALCollection<Weekday>> {
+    const collectionURL = 'all'; // We load all weekdays
 
     return this
       .http
-      .get<IHALCollection<Weekday>>(this.weekdaysPath + collectionURL)
+      .get<IHALCollection<Weekday>>(this.weekdaysPath)
       .pipe(
         map((collection) => extendCollectionElementsWithId(collection)),
         tap((collection) => insertCollectionIntoState(this.store, collection, collectionURL)),

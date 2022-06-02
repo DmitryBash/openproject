@@ -243,6 +243,7 @@ export class DatePickerModalComponent extends OpModalComponent implements AfterV
   private initializeDatepicker() {
     this.datePickerInstance?.destroy();
     this.datePickerInstance = new DatePicker(
+      this.injector,
       '#flatpickr-input',
       this.singleDate ? this.dates.date : [this.dates.start, this.dates.end],
       {
@@ -264,7 +265,6 @@ export class DatePickerModalComponent extends OpModalComponent implements AfterV
         },
       },
       null,
-      this.configurationService,
     );
   }
 

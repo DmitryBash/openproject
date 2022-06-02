@@ -25,14 +25,22 @@
 //
 // See COPYRIGHT and LICENSE files for more details.
 //++
-
 import * as moment from 'moment';
 import flatpickr from 'flatpickr';
 import { Instance } from 'flatpickr/dist/types/instance';
 import { ConfigurationService } from 'core-app/core/config/configuration.service';
 import { I18nService } from 'core-app/core/i18n/i18n.service';
 import { rangeSeparator } from 'core-app/shared/components/op-date-picker/op-range-date-picker/op-range-date-picker.component';
+import { WeekdayResourceService } from 'core-app/core/state/days/weekday.service';
+import { Weekday } from 'core-app/core/state/days/weekday.model';
 import DateOption = flatpickr.Options.DateOption;
+import {
+  ChangeDetectorRef,
+  Injector,
+  NgZone,
+} from '@angular/core';
+import { InjectField } from 'core-app/shared/helpers/angular/inject-field.decorator';
+import { take } from 'rxjs/operators';
 
 export class DatePicker {
   private datepickerFormat = 'Y-m-d';
@@ -43,23 +51,35 @@ export class DatePicker {
 
   private reshowTimeout:any;
 
-  constructor(private datepickerElemIdentifier:string,
+  private weekdays:Weekday[] = [];
+
+  @InjectField() configurationService:ConfigurationService;
+
+  @InjectField() weekdaysService:WeekdayResourceService;
+
+  constructor(
+    readonly injector:Injector,
+    private datepickerElemIdentifier:string,
     private date:Date|Date[]|string[]|string,
     private options:flatpickr.Options.Options,
     private datepickerTarget:HTMLElement|null,
-    private configurationService:ConfigurationService) {
-    this.initialize(options);
+  ) {
+    void this.initialize(options);
   }
 
   private initialize(options:flatpickr.Options.Options) {
     const I18n = new I18nService();
-    const firstDayOfWeek = this.configurationService.startOfWeek() as number;
+    const firstDayOfWeek = this.configurationService.startOfWeek();
+    this.loadWeekdays();
 
     const mergedOptions = _.extend({}, options, {
       weekNumbers: true,
       getWeek(dateObj:Date) {
         return moment(dateObj).format('W');
       },
+      disable: [
+        (date:Date) => this.isDateDisabled(date),
+      ],
       dateFormat: this.datepickerFormat,
       defaultDate: this.date,
       locale: {
@@ -146,6 +166,7 @@ export class DatePicker {
       return this.isInViewport(this.datepickerCont)
         && document.activeElement === this.datepickerCont;
     } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       console.error(`Failed to test visibleAndActive ${e}`);
       return false;
     }
@@ -160,5 +181,26 @@ export class DatePicker {
       && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)
       && rect.right <= (window.innerWidth || document.documentElement.clientWidth)
     );
+  }
+
+  private isDateDisabled(date:Date):boolean {
+    const dayOfWeek = date.getUTCDay() + 1;
+    return !!this.weekdays.find((wd) => wd.day === dayOfWeek && !wd.working);
+  }
+
+  private loadWeekdays() {
+    this
+      .weekdaysService
+      .require()
+      .pipe(
+        take(1),
+      )
+      .subscribe((weekdays) => {
+        this.weekdays = weekdays;
+
+        if (this.datepickerInstance) {
+          this.datepickerInstance.redraw();
+        }
+      });
   }
 }
